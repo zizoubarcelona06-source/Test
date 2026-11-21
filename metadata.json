@@ -1,0 +1,6 @@
+{
+  "name": "BTP Manager",
+  "description": "تطبيق متكامل لإدارة شركات البناء والأشغال العمومية يعمل دون اتصال بالإنترنت.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

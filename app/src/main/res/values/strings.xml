@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">BTP Manager</string>
+    <string name="app_subtitle">إدارة شركات البناء والأشغال العمومية</string>
+    <string name="offline_badge">يعمل بدون إنترنت • حفظ محلي آمن</string>
+    <string name="login_title">تسجيل الدخول</string>
+    <string name="login_phone_label">رقم الهاتف</string>
+    <string name="login_password_label">كلمة المرور</string>
+    <string name="login_remember_me">تذكر جلستي على هذا الجهاز</string>
+    <string name="login_submit">دخول إلى النظام</string>
+    <string name="login_error_empty">يرجى إدخال رقم الهاتف وكلمة المرور</string>
+    <string name="login_error_invalid">رقم الهاتف أو كلمة المرور غير صحيحة</string>
+    <string name="nav_dashboard">الرئيسية</string>
+    <string name="nav_projects">المشاريع</string>
+    <string name="nav_resources">الموارد</string>
+    <string name="nav_finance">المالية</string>
+    <string name="nav_reports">التقارير</string>
+</resources>

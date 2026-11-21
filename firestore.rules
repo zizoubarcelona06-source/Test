@@ -1,0 +1,779 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
+    }
+
+    function isValidRole(role) {
+      return role in ['مدير عام', 'مدير مشاريع', 'محاسب مالي', 'مهندس موقع'];
+    }
+
+    function isValidText(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidNonNegativeNumber(val) {
+      return (val is int || val is float) && val >= 0;
+    }
+
+    function isCompanyMember(companyId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid));
+    }
+
+    function memberRole(companyId) {
+      return get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function isCompanyAdmin(companyId) {
+      return isCompanyMember(companyId) && memberRole(companyId) == 'مدير عام';
+    }
+
+    function isCompanyManagerOrAdmin(companyId) {
+      return isCompanyMember(companyId) && memberRole(companyId) in ['مدير عام', 'مدير مشاريع'];
+    }
+
+    function isCompanyFinanceOrAdmin(companyId) {
+      return isCompanyMember(companyId) && memberRole(companyId) in ['مدير عام', 'محاسب مالي'];
+    }
+
+    function hasValidCompanyMeta(data, companyId) {
+      return data.companyId == companyId &&
+        data.updatedBy is string &&
+        data.updatedBy == request.auth.uid &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'fullName', 'email', 'photoUrl', 'role', 'branchName',
+          'preferredLanguageCode', 'activeCompanyId', 'active', 'rewardPoints',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'fullName', 'email', 'photoUrl', 'role', 'branchName',
+          'preferredLanguageCode', 'activeCompanyId', 'active', 'rewardPoints',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.uid == userId &&
+        isValidText(data.fullName, 1, 100) &&
+        isValidText(data.email, 0, 150) &&
+        isValidText(data.photoUrl, 0, 500) &&
+        isValidRole(data.role) &&
+        isValidText(data.branchName, 0, 100) &&
+        isValidText(data.preferredLanguageCode, 2, 10) &&
+        isValidText(data.activeCompanyId, 0, 128) &&
+        data.active is bool &&
+        data.rewardPoints is int && data.rewardPoints >= 0 && data.rewardPoints <= 1000000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserDevice(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'deviceName', 'deviceModel', 'locationLabel', 'active', 'lastActiveAt', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'deviceName', 'deviceModel', 'locationLabel', 'active', 'lastActiveAt', 'createdAt'
+        ]) &&
+        data.uid == userId &&
+        isValidText(data.deviceName, 1, 120) &&
+        isValidText(data.deviceModel, 0, 120) &&
+        isValidText(data.locationLabel, 0, 120) &&
+        data.active is bool &&
+        data.lastActiveAt is timestamp &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidCompanyInvite(data) {
+      return data.keys().hasAll([
+          'companyId', 'companyName', 'ownerId', 'defaultRole', 'active', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'companyId', 'companyName', 'ownerId', 'defaultRole', 'active', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.companyId) &&
+        isValidText(data.companyName, 1, 120) &&
+        isValidId(data.ownerId) &&
+        isValidRole(data.defaultRole) &&
+        data.active is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCompany(data) {
+      return data.keys().hasAll([
+          'name', 'currencySymbol', 'inviteCode', 'ownerId', 'memberUids', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'currencySymbol', 'inviteCode', 'ownerId', 'memberUids', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidText(data.name, 1, 120) &&
+        isValidText(data.currencySymbol, 1, 16) &&
+        isValidId(data.inviteCode) &&
+        isValidId(data.ownerId) &&
+        data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 200 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCompanyMember(data, companyId, memberUid) {
+      return data.keys().hasAll([
+          'uid', 'companyId', 'fullName', 'email', 'photoUrl', 'role',
+          'branchName', 'preferredLanguageCode', 'inviteCode', 'active', 'joinedAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'companyId', 'fullName', 'email', 'photoUrl', 'role',
+          'branchName', 'preferredLanguageCode', 'inviteCode', 'active', 'joinedAt', 'updatedAt'
+        ]) &&
+        data.uid == memberUid &&
+        data.companyId == companyId &&
+        isValidText(data.fullName, 1, 100) &&
+        isValidText(data.email, 0, 150) &&
+        isValidText(data.photoUrl, 0, 500) &&
+        isValidRole(data.role) &&
+        isValidText(data.branchName, 0, 100) &&
+        isValidText(data.preferredLanguageCode, 2, 10) &&
+        isValidText(data.inviteCode, 0, 24) &&
+        data.active is bool &&
+        data.joinedAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProject(data, companyId) {
+      return data.keys().hasAll([
+          'code', 'name', 'clientName', 'location', 'budget', 'spentAmount',
+          'startDate', 'endDate', 'progressPercent', 'status', 'description',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'code', 'name', 'clientName', 'location', 'budget', 'spentAmount',
+          'startDate', 'endDate', 'progressPercent', 'status', 'description',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.code, 1, 40) &&
+        isValidText(data.name, 1, 140) &&
+        isValidText(data.clientName, 0, 120) &&
+        isValidText(data.location, 0, 160) &&
+        isValidNonNegativeNumber(data.budget) &&
+        isValidNonNegativeNumber(data.spentAmount) &&
+        isValidText(data.startDate, 0, 32) &&
+        isValidText(data.endDate, 0, 32) &&
+        data.progressPercent is int && data.progressPercent >= 0 && data.progressPercent <= 100 &&
+        isValidText(data.status, 1, 40) &&
+        isValidText(data.description, 0, 1000);
+    }
+
+    function isValidSite(data, companyId) {
+      return data.keys().hasAll([
+          'projectName', 'name', 'address', 'supervisorName', 'workerCount',
+          'safetyStatus', 'status', 'dailyNote', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'projectName', 'name', 'address', 'supervisorName', 'workerCount',
+          'safetyStatus', 'status', 'dailyNote', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.projectName, 0, 140) &&
+        isValidText(data.name, 1, 140) &&
+        isValidText(data.address, 0, 200) &&
+        isValidText(data.supervisorName, 0, 120) &&
+        data.workerCount is int && data.workerCount >= 0 && data.workerCount <= 10000 &&
+        isValidText(data.safetyStatus, 1, 40) &&
+        isValidText(data.status, 1, 40) &&
+        isValidText(data.dailyNote, 0, 1000);
+    }
+
+    function isValidTask(data, companyId) {
+      return data.keys().hasAll([
+          'title', 'projectName', 'siteName', 'assignedTeam', 'startDate', 'dueDate',
+          'priority', 'completed', 'progress', 'assignedToUid',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'projectName', 'siteName', 'assignedTeam', 'startDate', 'dueDate',
+          'priority', 'completed', 'progress', 'assignedToUid',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.title, 1, 160) &&
+        isValidText(data.projectName, 0, 140) &&
+        isValidText(data.siteName, 0, 140) &&
+        isValidText(data.assignedTeam, 0, 120) &&
+        isValidText(data.startDate, 0, 32) &&
+        isValidText(data.dueDate, 0, 32) &&
+        isValidText(data.priority, 1, 40) &&
+        data.completed is bool &&
+        data.progress is int && data.progress >= 0 && data.progress <= 100 &&
+        isValidText(data.assignedToUid, 0, 128);
+    }
+
+    function isValidEmployee(data, companyId) {
+      return data.keys().hasAll([
+          'fullName', 'role', 'phone', 'nationalId', 'dailyWage', 'assignedSiteName',
+          'attendanceStatus', 'hireDate', 'active', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'fullName', 'role', 'phone', 'nationalId', 'dailyWage', 'assignedSiteName',
+          'attendanceStatus', 'hireDate', 'active', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.fullName, 1, 120) &&
+        isValidText(data.role, 1, 80) &&
+        isValidText(data.phone, 0, 40) &&
+        isValidText(data.nationalId, 0, 60) &&
+        isValidNonNegativeNumber(data.dailyWage) &&
+        isValidText(data.assignedSiteName, 0, 140) &&
+        isValidText(data.attendanceStatus, 1, 40) &&
+        isValidText(data.hireDate, 0, 32) &&
+        data.active is bool;
+    }
+
+    function isValidEquipment(data, companyId) {
+      return data.keys().hasAll([
+          'name', 'code', 'category', 'status', 'assignedSiteName',
+          'nextMaintenanceDate', 'hourlyCost', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'code', 'category', 'status', 'assignedSiteName',
+          'nextMaintenanceDate', 'hourlyCost', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.name, 1, 140) &&
+        isValidText(data.code, 1, 60) &&
+        isValidText(data.category, 1, 80) &&
+        isValidText(data.status, 1, 40) &&
+        isValidText(data.assignedSiteName, 0, 140) &&
+        isValidText(data.nextMaintenanceDate, 0, 32) &&
+        isValidNonNegativeNumber(data.hourlyCost);
+    }
+
+    function isValidEquipmentFault(data, companyId) {
+      return data.keys().hasAll([
+          'equipmentName', 'siteName', 'severity', 'description',
+          'reportedByUid', 'reportedByName', 'status',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'equipmentName', 'siteName', 'severity', 'description',
+          'reportedByUid', 'reportedByName', 'status',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.equipmentName, 1, 140) &&
+        isValidText(data.siteName, 0, 140) &&
+        isValidText(data.severity, 1, 40) &&
+        isValidText(data.description, 1, 1000) &&
+        isValidId(data.reportedByUid) &&
+        isValidText(data.reportedByName, 1, 120) &&
+        isValidText(data.status, 1, 40);
+    }
+
+    function isValidMaterial(data, companyId) {
+      return data.keys().hasAll([
+          'name', 'sku', 'unit', 'quantityInStock', 'minThreshold', 'unitPrice',
+          'supplierName', 'warehouseLocation', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'sku', 'unit', 'quantityInStock', 'minThreshold', 'unitPrice',
+          'supplierName', 'warehouseLocation', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.name, 1, 140) &&
+        isValidText(data.sku, 1, 60) &&
+        isValidText(data.unit, 1, 32) &&
+        isValidNonNegativeNumber(data.quantityInStock) &&
+        isValidNonNegativeNumber(data.minThreshold) &&
+        isValidNonNegativeNumber(data.unitPrice) &&
+        isValidText(data.supplierName, 0, 140) &&
+        isValidText(data.warehouseLocation, 0, 140);
+    }
+
+    function isValidExpense(data, companyId) {
+      return data.keys().hasAll([
+          'title', 'category', 'amount', 'date', 'projectName', 'paymentMethod',
+          'notes', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'category', 'amount', 'date', 'projectName', 'paymentMethod',
+          'notes', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.title, 1, 160) &&
+        isValidText(data.category, 1, 80) &&
+        isValidNonNegativeNumber(data.amount) &&
+        isValidText(data.date, 1, 32) &&
+        isValidText(data.projectName, 0, 140) &&
+        isValidText(data.paymentMethod, 1, 60) &&
+        isValidText(data.notes, 0, 1000);
+    }
+
+    function isValidInvoice(data, companyId) {
+      return data.keys().hasAll([
+          'invoiceNumber', 'type', 'partyName', 'projectName', 'totalAmount', 'paidAmount',
+          'issueDate', 'dueDate', 'status', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'invoiceNumber', 'type', 'partyName', 'projectName', 'totalAmount', 'paidAmount',
+          'issueDate', 'dueDate', 'status', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.invoiceNumber, 1, 80) &&
+        isValidText(data.type, 1, 60) &&
+        isValidText(data.partyName, 1, 140) &&
+        isValidText(data.projectName, 0, 140) &&
+        isValidNonNegativeNumber(data.totalAmount) &&
+        isValidNonNegativeNumber(data.paidAmount) &&
+        isValidText(data.issueDate, 1, 32) &&
+        isValidText(data.dueDate, 0, 32) &&
+        isValidText(data.status, 1, 60);
+    }
+
+    function isValidClient(data, companyId) {
+      return data.keys().hasAll([
+          'name', 'companyName', 'phone', 'email', 'address', 'taxId', 'notes',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'companyName', 'phone', 'email', 'address', 'taxId', 'notes',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.name, 1, 140) &&
+        isValidText(data.companyName, 0, 140) &&
+        isValidText(data.phone, 0, 40) &&
+        isValidText(data.email, 0, 150) &&
+        isValidText(data.address, 0, 200) &&
+        isValidText(data.taxId, 0, 80) &&
+        isValidText(data.notes, 0, 1000);
+    }
+
+    function isValidSupplier(data, companyId) {
+      return data.keys().hasAll([
+          'name', 'category', 'phone', 'email', 'address', 'balanceOwed', 'notes',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'category', 'phone', 'email', 'address', 'balanceOwed', 'notes',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.name, 1, 140) &&
+        isValidText(data.category, 1, 80) &&
+        isValidText(data.phone, 0, 40) &&
+        isValidText(data.email, 0, 150) &&
+        isValidText(data.address, 0, 200) &&
+        isValidNonNegativeNumber(data.balanceOwed) &&
+        isValidText(data.notes, 0, 1000);
+    }
+
+    function isValidChatChannel(data, companyId) {
+      return data.keys().hasAll([
+          'name', 'channelType', 'projectName', 'participantUidsCsv', 'lastMessagePreview',
+          'lastMessageAtMs', 'unreadCount', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'channelType', 'projectName', 'participantUidsCsv', 'lastMessagePreview',
+          'lastMessageAtMs', 'unreadCount', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.name, 1, 140) &&
+        data.channelType in ['DIRECT', 'PROJECT', 'SITE', 'ANNOUNCEMENT'] &&
+        isValidText(data.projectName, 0, 140) &&
+        isValidText(data.participantUidsCsv, 0, 500) &&
+        isValidText(data.lastMessagePreview, 0, 300) &&
+        data.lastMessageAtMs is int && data.lastMessageAtMs >= 0 &&
+        data.unreadCount is int && data.unreadCount >= 0 && data.unreadCount <= 100000;
+    }
+
+    function isValidChatMessage(data, companyId) {
+      return data.keys().hasAll([
+          'channelCloudId', 'senderUid', 'senderName', 'senderRole', 'content',
+          'attachmentType', 'attachmentName', 'attachmentUri', 'timestampMs', 'read',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'channelCloudId', 'senderUid', 'senderName', 'senderRole', 'content',
+          'attachmentType', 'attachmentName', 'attachmentUri', 'timestampMs', 'read',
+          'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidId(data.channelCloudId) &&
+        isValidId(data.senderUid) &&
+        isValidText(data.senderName, 1, 120) &&
+        isValidText(data.senderRole, 1, 80) &&
+        isValidText(data.content, 0, 2000) &&
+        data.attachmentType in ['NONE', 'IMAGE', 'DOCUMENT'] &&
+        isValidText(data.attachmentName, 0, 200) &&
+        isValidText(data.attachmentUri, 0, 500) &&
+        (data.content.size() > 0 || data.attachmentName.size() > 0) &&
+        data.timestampMs is int && data.timestampMs >= 0 &&
+        data.read is bool;
+    }
+
+    function isValidCompanyNotification(data, companyId) {
+      return data.keys().hasAll([
+          'category', 'title', 'message', 'targetTab', 'targetSubTab',
+          'read', 'createdAtMs', 'audience', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'category', 'title', 'message', 'targetTab', 'targetSubTab',
+          'read', 'createdAtMs', 'audience', 'companyId', 'updatedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        hasValidCompanyMeta(data, companyId) &&
+        isValidText(data.category, 1, 40) &&
+        isValidText(data.title, 1, 160) &&
+        isValidText(data.message, 1, 1000) &&
+        isValidText(data.targetTab, 1, 40) &&
+        data.targetSubTab is int && data.targetSubTab >= 0 && data.targetSubTab <= 10 &&
+        data.read is bool &&
+        data.createdAtMs is int && data.createdAtMs >= 0 &&
+        data.audience in ['ALL', 'FINANCE', 'ADMIN'];
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(request.resource.data, userId) &&
+        request.resource.data.createdAt <= request.time &&
+        request.resource.data.updatedAt <= request.time;
+      allow update: if isOwner(userId) &&
+        isValidUserProfile(request.resource.data, userId) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt <= request.time;
+      allow delete: if isOwner(userId);
+
+      match /devices/{deviceId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(deviceId) &&
+          isValidUserDevice(request.resource.data, userId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.lastActiveAt <= request.time;
+        allow update: if isOwner(userId) &&
+          isValidUserDevice(request.resource.data, userId) &&
+          request.resource.data.uid == resource.data.uid &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.lastActiveAt <= request.time;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /company_invites/{inviteCode} {
+      allow get: if isSignedIn() && isValidId(inviteCode);
+      allow list: if false;
+      allow create: if isSignedIn() &&
+        isValidId(inviteCode) &&
+        isValidCompanyInvite(request.resource.data) &&
+        request.resource.data.ownerId == request.auth.uid &&
+        get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerId == request.auth.uid &&
+        request.resource.data.createdAt <= request.time &&
+        request.resource.data.updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidCompanyInvite(request.resource.data) &&
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.companyId == resource.data.companyId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt <= request.time;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /companies/{companyId} {
+      allow get: if isSignedIn() &&
+        (request.auth.uid in resource.data.memberUids || isCompanyMember(companyId));
+      allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+      allow create: if isSignedIn() &&
+        isValidId(companyId) &&
+        isValidCompany(request.resource.data) &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.auth.uid in request.resource.data.memberUids &&
+        request.resource.data.createdAt <= request.time &&
+        request.resource.data.updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidCompany(request.resource.data) &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt <= request.time &&
+        (
+          resource.data.ownerId == request.auth.uid ||
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids', 'updatedAt']) &&
+            request.resource.data.memberUids.hasAll(resource.data.memberUids) &&
+            (
+              request.resource.data.memberUids.size() == resource.data.memberUids.size() + 1 ||
+              (request.auth.uid in resource.data.memberUids && request.resource.data.memberUids.size() == resource.data.memberUids.size())
+            ) &&
+            request.auth.uid in request.resource.data.memberUids &&
+            isCompanyMember(companyId)
+          )
+        );
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /members/{memberUid} {
+        allow get: if isOwner(memberUid) || isCompanyMember(companyId);
+        allow list: if isCompanyMember(companyId);
+        allow create: if isSignedIn() &&
+          isValidId(memberUid) &&
+          isValidCompanyMember(request.resource.data, companyId, memberUid) &&
+          request.resource.data.joinedAt <= request.time &&
+          request.resource.data.updatedAt <= request.time &&
+          (
+            (
+              isOwner(memberUid) &&
+              get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid &&
+              request.resource.data.role == 'مدير عام'
+            ) ||
+            (
+              isOwner(memberUid) &&
+              isValidId(request.resource.data.inviteCode) &&
+              get(/databases/$(database)/documents/company_invites/$(request.resource.data.inviteCode)).data.active == true &&
+              get(/databases/$(database)/documents/company_invites/$(request.resource.data.inviteCode)).data.companyId == companyId &&
+              request.resource.data.role == get(/databases/$(database)/documents/company_invites/$(request.resource.data.inviteCode)).data.defaultRole
+            )
+          );
+        allow update: if isSignedIn() &&
+          isValidCompanyMember(request.resource.data, companyId, memberUid) &&
+          request.resource.data.uid == resource.data.uid &&
+          request.resource.data.companyId == resource.data.companyId &&
+          request.resource.data.joinedAt == resource.data.joinedAt &&
+          request.resource.data.updatedAt <= request.time &&
+          (
+            isCompanyAdmin(companyId) ||
+            (
+              isOwner(memberUid) &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'fullName', 'email', 'photoUrl', 'branchName', 'preferredLanguageCode', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isCompanyAdmin(companyId) && memberUid != get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId;
+      }
+
+      match /projects/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyManagerOrAdmin(companyId) &&
+          isValidId(docId) &&
+          isValidProject(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyManagerOrAdmin(companyId) &&
+          isValidProject(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /sites/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidSite(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidSite(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /tasks/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidTask(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidTask(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /employees/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidEmployee(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidEmployee(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /equipment/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidEquipment(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidEquipment(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /equipment_faults/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidEquipmentFault(request.resource.data, companyId) &&
+          request.resource.data.reportedByUid == request.auth.uid &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyManagerOrAdmin(companyId) &&
+          isValidEquipmentFault(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /materials/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidMaterial(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidMaterial(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyManagerOrAdmin(companyId);
+      }
+
+      match /expenses/{docId} {
+        allow get, list: if isCompanyFinanceOrAdmin(companyId);
+        allow create: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidId(docId) &&
+          isValidExpense(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidExpense(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyFinanceOrAdmin(companyId);
+      }
+
+      match /invoices/{docId} {
+        allow get, list: if isCompanyFinanceOrAdmin(companyId);
+        allow create: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidId(docId) &&
+          isValidInvoice(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidInvoice(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyFinanceOrAdmin(companyId);
+      }
+
+      match /clients/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidId(docId) &&
+          isValidClient(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidClient(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyFinanceOrAdmin(companyId);
+      }
+
+      match /suppliers/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidId(docId) &&
+          isValidSupplier(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyFinanceOrAdmin(companyId) &&
+          isValidSupplier(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyFinanceOrAdmin(companyId);
+      }
+
+      match /chat_channels/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidChatChannel(request.resource.data, companyId) &&
+          (request.resource.data.channelType != 'ANNOUNCEMENT' || isCompanyManagerOrAdmin(companyId)) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidChatChannel(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyAdmin(companyId);
+      }
+
+      match /chat_messages/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidChatMessage(request.resource.data, companyId) &&
+          request.resource.data.senderUid == request.auth.uid &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidChatMessage(request.resource.data, companyId) &&
+          request.resource.data.senderUid == resource.data.senderUid &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time &&
+          (
+            isCompanyAdmin(companyId) ||
+            request.auth.uid == resource.data.senderUid ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'updatedBy', 'updatedAt'])
+          );
+        allow delete: if isCompanyAdmin(companyId);
+      }
+
+      match /notifications/{docId} {
+        allow get, list: if isCompanyMember(companyId);
+        allow create: if isCompanyMember(companyId) &&
+          isValidId(docId) &&
+          isValidCompanyNotification(request.resource.data, companyId) &&
+          request.resource.data.createdAt <= request.time &&
+          request.resource.data.updatedAt <= request.time;
+        allow update: if isCompanyMember(companyId) &&
+          isValidCompanyNotification(request.resource.data, companyId) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt <= request.time;
+        allow delete: if isCompanyAdmin(companyId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

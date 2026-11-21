@@ -1,0 +1,450 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private Google-authenticated user profile and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "role": { "type": "string", "enum": ["مدير عام", "مدير مشاريع", "محاسب مالي", "مهندس موقع"] },
+        "branchName": { "type": "string" },
+        "preferredLanguageCode": { "type": "string" },
+        "activeCompanyId": { "type": "string" },
+        "active": { "type": "boolean" },
+        "rewardPoints": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "fullName", "email", "photoUrl", "role", "branchName", "preferredLanguageCode", "activeCompanyId", "active", "rewardPoints", "createdAt", "updatedAt"]
+    },
+    "UserDevice": {
+      "title": "UserDevice",
+      "description": "Active device session belonging to a user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "deviceName": { "type": "string" },
+        "deviceModel": { "type": "string" },
+        "locationLabel": { "type": "string" },
+        "active": { "type": "boolean" },
+        "lastActiveAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "deviceName", "deviceModel", "locationLabel", "active", "lastActiveAt", "createdAt"]
+    },
+    "CompanyInvite": {
+      "title": "CompanyInvite",
+      "description": "Invite code mapping employees to a company workspace",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string" },
+        "companyName": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "defaultRole": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["companyId", "companyName", "ownerId", "defaultRole", "active", "createdAt", "updatedAt"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Multi-tenant construction company workspace",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "currencySymbol": { "type": "string" },
+        "inviteCode": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "memberUids": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "currencySymbol", "inviteCode", "ownerId", "memberUids", "createdAt", "updatedAt"]
+    },
+    "CompanyMember": {
+      "title": "CompanyMember",
+      "description": "Role-governed company member entry",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "companyId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "role": { "type": "string" },
+        "branchName": { "type": "string" },
+        "preferredLanguageCode": { "type": "string" },
+        "inviteCode": { "type": "string" },
+        "active": { "type": "boolean" },
+        "joinedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "companyId", "fullName", "email", "photoUrl", "role", "branchName", "preferredLanguageCode", "inviteCode", "active", "joinedAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Construction project record",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "clientName": { "type": "string" },
+        "location": { "type": "string" },
+        "budget": { "type": "number" },
+        "spentAmount": { "type": "number" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "progressPercent": { "type": "integer" },
+        "status": { "type": "string" },
+        "description": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "name", "clientName", "location", "budget", "spentAmount", "startDate", "endDate", "progressPercent", "status", "description", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Site": {
+      "title": "Site",
+      "description": "Construction field site record",
+      "type": "object",
+      "properties": {
+        "projectName": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "supervisorName": { "type": "string" },
+        "workerCount": { "type": "integer" },
+        "safetyStatus": { "type": "string" },
+        "status": { "type": "string" },
+        "dailyNote": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["projectName", "name", "address", "supervisorName", "workerCount", "safetyStatus", "status", "dailyNote", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "ScheduleTask": {
+      "title": "ScheduleTask",
+      "description": "Site work task record",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "projectName": { "type": "string" },
+        "siteName": { "type": "string" },
+        "assignedTeam": { "type": "string" },
+        "startDate": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "priority": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "progress": { "type": "integer" },
+        "assignedToUid": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "projectName", "siteName", "assignedTeam", "startDate", "dueDate", "priority", "completed", "progress", "assignedToUid", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Worker record with live attendance status",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "role": { "type": "string" },
+        "phone": { "type": "string" },
+        "nationalId": { "type": "string" },
+        "dailyWage": { "type": "number" },
+        "assignedSiteName": { "type": "string" },
+        "attendanceStatus": { "type": "string" },
+        "hireDate": { "type": "string" },
+        "active": { "type": "boolean" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "role", "phone", "nationalId", "dailyWage", "assignedSiteName", "attendanceStatus", "hireDate", "active", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Equipment": {
+      "title": "Equipment",
+      "description": "Heavy machinery and equipment record",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" },
+        "assignedSiteName": { "type": "string" },
+        "nextMaintenanceDate": { "type": "string" },
+        "hourlyCost": { "type": "number" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "code", "category", "status", "assignedSiteName", "nextMaintenanceDate", "hourlyCost", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "EquipmentFault": {
+      "title": "EquipmentFault",
+      "description": "Reported equipment fault incident",
+      "type": "object",
+      "properties": {
+        "equipmentName": { "type": "string" },
+        "siteName": { "type": "string" },
+        "severity": { "type": "string" },
+        "description": { "type": "string" },
+        "reportedByUid": { "type": "string" },
+        "reportedByName": { "type": "string" },
+        "status": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["equipmentName", "siteName", "severity", "description", "reportedByUid", "reportedByName", "status", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Warehouse inventory material record",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "unit": { "type": "string" },
+        "quantityInStock": { "type": "number" },
+        "minThreshold": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "supplierName": { "type": "string" },
+        "warehouseLocation": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "sku", "unit", "quantityInStock", "minThreshold", "unitPrice", "supplierName", "warehouseLocation", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Restricted company expense record",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "projectName": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "notes": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "amount", "date", "projectName", "paymentMethod", "notes", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Restricted company invoice record",
+      "type": "object",
+      "properties": {
+        "invoiceNumber": { "type": "string" },
+        "type": { "type": "string" },
+        "partyName": { "type": "string" },
+        "projectName": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "issueDate": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["invoiceNumber", "type", "partyName", "projectName", "totalAmount", "paidAmount", "issueDate", "dueDate", "status", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Client partner record",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "companyName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "taxId": { "type": "string" },
+        "notes": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "companyName", "phone", "email", "address", "taxId", "notes", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Supplier partner record",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "balanceOwed": { "type": "number" },
+        "notes": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "phone", "email", "address", "balanceOwed", "notes", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "ChatChannel": {
+      "title": "ChatChannel",
+      "description": "Internal BTP Chat channel",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "channelType": { "type": "string" },
+        "projectName": { "type": "string" },
+        "participantUidsCsv": { "type": "string" },
+        "lastMessagePreview": { "type": "string" },
+        "lastMessageAtMs": { "type": "integer" },
+        "unreadCount": { "type": "integer" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "channelType", "projectName", "participantUidsCsv", "lastMessagePreview", "lastMessageAtMs", "unreadCount", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message inside a BTP Chat channel",
+      "type": "object",
+      "properties": {
+        "channelCloudId": { "type": "string" },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "content": { "type": "string" },
+        "attachmentType": { "type": "string" },
+        "attachmentName": { "type": "string" },
+        "attachmentUri": { "type": "string" },
+        "timestampMs": { "type": "integer" },
+        "read": { "type": "boolean" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["channelCloudId", "senderUid", "senderName", "senderRole", "content", "attachmentType", "attachmentName", "attachmentUri", "timestampMs", "read", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "CompanyNotification": {
+      "title": "CompanyNotification",
+      "description": "Shared operational notification",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "targetTab": { "type": "string" },
+        "targetSubTab": { "type": "integer" },
+        "read": { "type": "boolean" },
+        "createdAtMs": { "type": "integer" },
+        "audience": { "type": "string" },
+        "companyId": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["category", "title", "message", "targetTab", "targetSubTab", "read", "createdAtMs", "audience", "companyId", "updatedBy", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user account profile owned strictly by the authenticated user"
+    },
+    "/users/{userId}/devices/{deviceId}": {
+      "schema": { "$ref": "#/entities/UserDevice" },
+      "description": "Active device sessions belonging strictly to the user"
+    },
+    "/company_invites/{inviteCode}": {
+      "schema": { "$ref": "#/entities/CompanyInvite" },
+      "description": "Lookup-by-code documents used to invite employees into a company"
+    },
+    "/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/Company" },
+      "description": "Company workspace shared among verified members"
+    },
+    "/companies/{companyId}/members/{memberUid}": {
+      "schema": { "$ref": "#/entities/CompanyMember" },
+      "description": "Verified company member directory and assigned RBAC role"
+    },
+    "/companies/{companyId}/projects/{docId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Company construction projects"
+    },
+    "/companies/{companyId}/sites/{docId}": {
+      "schema": { "$ref": "#/entities/Site" },
+      "description": "Company construction work sites"
+    },
+    "/companies/{companyId}/tasks/{docId}": {
+      "schema": { "$ref": "#/entities/ScheduleTask" },
+      "description": "Company schedule tasks"
+    },
+    "/companies/{companyId}/employees/{docId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Company employees and live attendance status"
+    },
+    "/companies/{companyId}/equipment/{docId}": {
+      "schema": { "$ref": "#/entities/Equipment" },
+      "description": "Company equipment and operational status"
+    },
+    "/companies/{companyId}/equipment_faults/{docId}": {
+      "schema": { "$ref": "#/entities/EquipmentFault" },
+      "description": "Company equipment fault reports"
+    },
+    "/companies/{companyId}/materials/{docId}": {
+      "schema": { "$ref": "#/entities/Material" },
+      "description": "Company materials and warehouse stock"
+    },
+    "/companies/{companyId}/expenses/{docId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Finance-restricted company expenses"
+    },
+    "/companies/{companyId}/invoices/{docId}": {
+      "schema": { "$ref": "#/entities/Invoice" },
+      "description": "Finance-restricted company invoices"
+    },
+    "/companies/{companyId}/clients/{docId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Company clients"
+    },
+    "/companies/{companyId}/suppliers/{docId}": {
+      "schema": { "$ref": "#/entities/Supplier" },
+      "description": "Company suppliers"
+    },
+    "/companies/{companyId}/chat_channels/{docId}": {
+      "schema": { "$ref": "#/entities/ChatChannel" },
+      "description": "Company BTP Chat channels"
+    },
+    "/companies/{companyId}/chat_messages/{docId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Company BTP Chat messages"
+    },
+    "/companies/{companyId}/notifications/{docId}": {
+      "schema": { "$ref": "#/entities/CompanyNotification" },
+      "description": "Company alerts and notifications"
+    }
+  }
+}
